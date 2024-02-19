@@ -1,5 +1,6 @@
 package com.example.ahref
 
+import com.example.ahref.search.ui.SearchService
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit

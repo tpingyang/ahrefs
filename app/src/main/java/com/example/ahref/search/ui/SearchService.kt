@@ -1,4 +1,4 @@
-package com.example.ahref
+package com.example.ahref.search.ui
 
 import retrofit2.http.GET
 import retrofit2.http.Query

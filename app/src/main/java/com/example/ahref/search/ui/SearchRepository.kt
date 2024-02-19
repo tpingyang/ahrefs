@@ -1,4 +1,6 @@
-package com.example.ahref
+package com.example.ahref.search.ui
+
+import com.example.ahref.RetrofitInstance
 
 class SearchRepository {
     private val searchService = RetrofitInstance.searchService
