@@ -31,7 +31,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,26 +49,22 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.LiveData
 import kotlinx.coroutines.flow.StateFlow
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun SearchScreen(
     searchText: StateFlow<TextFieldValue>,
-    searchResult: LiveData<List<SearchResult>>,
+    searchResult: StateFlow<List<SearchResult>>,
     onQueryChange: (TextFieldValue) -> Unit,
     onSearch: (String) -> Unit,
     onBack: () -> Unit,
     onClear: () -> Unit,
 ) {
-
-
     val searchText by searchText.collectAsState()
-    val searchResults by searchResult.observeAsState()
+    val searchResults by searchResult.collectAsState()
 
     Scaffold(
         topBar = {
@@ -102,61 +97,59 @@ fun SearchScreen(
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                if (searchResults?.isEmpty() == false) LazyColumn(
+                if (searchResults.isNotEmpty()) LazyColumn(
                     modifier = Modifier.padding(horizontal = 24.dp)
                 ) {
-                    searchResults?.let {
-                        items(it) { searchResult ->
-                            Row(
-                                Modifier.height(60.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                    items(searchResults) { searchResult ->
+                        Row(
+                            Modifier.height(60.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search",
+                                Modifier
+                                    .padding(4.dp)
+                                    .size(30.dp)
+                            )
+                            Text(
+                                text = AnnotatedString(
+                                    text = searchResult.phrase,
+                                    spanStyles = listOf(
+                                        AnnotatedString.Range(
+                                            SpanStyle(fontWeight = FontWeight.Bold),
+                                            start = if (searchResult.phrase.length > searchText.text.length) {
+                                                searchText.text.length
+                                            } else {
+                                                searchResult.phrase.length
+                                            },
+                                            end = searchResult.phrase.length
+                                        )
+                                    )
+                                ),
+                                fontSize = 18.sp,
+                                modifier = Modifier
+                                    .padding(
+                                        horizontal = 16.dp,
+                                    )
+                                    .weight(1f)
+                            )
+                            IconButton(onClick = {
+                                onQueryChange(
+                                    TextFieldValue(
+                                        searchResult.phrase,
+                                        selection = TextRange(searchResult.phrase.length)
+                                    )
+                                )
+                            }) {
                                 Icon(
-                                    imageVector = Icons.Default.Search,
+                                    modifier = Modifier.rotate(45f),
+                                    imageVector = Icons.Default.ArrowBack,
                                     contentDescription = "Search",
-                                    Modifier
-                                        .padding(4.dp)
-                                        .size(30.dp)
                                 )
-                                Text(
-                                    text = AnnotatedString(
-                                        text = searchResult.phrase,
-                                        spanStyles = listOf(
-                                            AnnotatedString.Range(
-                                                SpanStyle(fontWeight = FontWeight.Bold),
-                                                start = if (searchResult.phrase.length > searchText.text.length) {
-                                                    searchText.text.length
-                                                } else {
-                                                    searchResult.phrase.length
-                                                },
-                                                end = searchResult.phrase.length
-                                            )
-                                        )
-                                    ),
-                                    fontSize = 18.sp,
-                                    modifier = Modifier
-                                        .padding(
-                                            horizontal = 16.dp,
-                                        )
-                                        .weight(1f)
-                                )
-                                IconButton(onClick = {
-                                    onQueryChange(
-                                        TextFieldValue(
-                                            searchResult.phrase,
-                                            selection = TextRange(searchResult.phrase.length)
-                                        )
-                                    )
-                                }) {
-                                    Icon(
-                                        modifier = Modifier.rotate(45f),
-                                        imageVector = Icons.Default.ArrowBack,
-                                        contentDescription = "Search",
-                                    )
-                                }
                             }
-                            Divider(color = Color.LightGray)
                         }
+                        Divider(color = Color.LightGray)
                     }
                 }
             }
@@ -164,6 +157,8 @@ fun SearchScreen(
     ) {}
 }
 
+// Prefer to use androidx.compose.material3.SearchBar but
+// created this composable to achieve UI similar to requirement
 @Composable
 fun MySearchBar(
     query: TextFieldValue,
@@ -173,7 +168,6 @@ fun MySearchBar(
     onActiveChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    placeHolder: @Composable (() -> Unit)? = null,
     leadingIcon: @Composable (() -> Unit)? = null,
     trailingIcon: @Composable (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
@@ -232,9 +226,6 @@ fun MySearchBar(
                                 leadingIcon?.let { it() }
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Box {
-                                    if (query.text.isEmpty()) {
-                                        placeHolder?.let { it() }
-                                    }
                                     innerTextField()
                                 }
                             }
